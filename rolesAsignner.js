@@ -1,16 +1,12 @@
 const {
   Client,
-  Events,
   GatewayIntentBits,
-  ActivityType,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
 } = require("discord.js");
 const { token } = require("./config.json");
-const { EmbedBuilder } = require("discord.js");
-const prefixCommand = require("./prefix-commands");
-const prefix = "^";
 
 const client = new Client({
   intents: [
@@ -20,68 +16,70 @@ const client = new Client({
   ],
 });
 
-const roles = [
-  {
-    id: "1273861548733108306",
-    label: "Red",
-    emoji: "🔴",
-  },
-  {
-    id: "1273861464700092556",
-    label: "Green",
-    emoji: "🍀",
-  },
-];
-
 client.on("interactionCreate", async (interaction) => {
   if (interaction.commandName === "roles") {
+    const roles = [];
+
     interaction.guild.roles.cache.forEach((role) => {
-      console.log(`Role Name: ${role.name}, Role ID: ${role.id} `);
-    //   console.log(Object.keys(role.tags).length);
+      console.log(role.tags);
+      if (role.name !== "@everyone" && Object.keys(role.tags).length <= 0) {
+        roles.push({
+          id: role.id,
+          label: role.name,
+          emoji: "🔘",
+        });
+      }
     });
+
     await interaction.reply({
       content: "Setting up roles...",
       ephemeral: true,
     });
-    await roleManage(interaction);
+
+    await roleManage(interaction, roles);
   }
 
-  async function roleManage(interaction) {
+  async function roleManage(interaction, roles) {
     try {
-      const channel = await client.channels.cache.get(
-        `${interaction.channelId}`
-      );
-      // console.log(channel);
+      const channel = client.channels.cache.get(interaction.channelId);
       if (!channel) return;
 
-      const row = new ActionRowBuilder();
+      let rows = [];
+      let messageChunks = [];
 
-      roles.forEach((role) => {
-        if (role.label == "Red") {
-          row.components.push(
-            new ButtonBuilder()
-              .setCustomId(role.id)
-              .setLabel(role.label)
-              .setStyle(ButtonStyle.Secondary)
-              .setEmoji(role.emoji)
-          );
+      roles.forEach((role, index) => {
+        if (rows.length === 5) {
+          messageChunks.push(rows);
+          rows = [];
         }
-        if (role.label == "Green") {
-          row.components.push(
-            new ButtonBuilder()
-              .setCustomId(role.id)
-              .setLabel(role.label)
-              .setStyle(ButtonStyle.Secondary)
-              .setEmoji(role.emoji)
-          );
-        }
+
+        rows.push(
+          new ButtonBuilder()
+            .setCustomId(role.id)
+            .setLabel(role.label)
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji(role.emoji)
+        );
       });
 
+      if (rows.length > 0) {
+        messageChunks.push(rows);
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle("Role Selection")
+        .setDescription("Select your roles by clicking the buttons below.")
+        .setColor(0x00ae86);
       await channel.send({
         content: "Claim your roles!",
-        components: [row],
+        embeds: [embed],
       });
-      //   process.exit();
+      for (const chunk of messageChunks) {
+        const actionRow = new ActionRowBuilder().addComponents(chunk);
+        await channel.send({
+          components: [actionRow],
+        });
+      }
     } catch (error) {
       console.log(error);
     }
@@ -106,13 +104,13 @@ client.on("interactionCreate", async (interaction) => {
     if (hasRole) {
       await interaction.member.roles.remove(role);
       await interaction.reply({
-        content: `The role ${role} has been removed!`,
+        content: `The role ${role.name} has been removed!`,
         ephemeral: true,
       });
     } else {
       await interaction.member.roles.add(role);
       await interaction.reply({
-        content: `The role ${role} has been added!`,
+        content: `The role ${role.name} has been added!`,
         ephemeral: true,
       });
     }
