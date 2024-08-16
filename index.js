@@ -1,4 +1,3 @@
-// Require the necessary discord.js classes
 const {
   Client,
   Events,
@@ -7,7 +6,10 @@ const {
 } = require("discord.js");
 const { token } = require("./config.json");
 const { EmbedBuilder } = require("discord.js");
-// Create a new client instance
+const prefixCommand = require("./prefix-commands");
+const roleAssign = require("./rolesAsignner");
+const prefix = "^";
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -16,12 +18,7 @@ const client = new Client({
   ],
 });
 client.on("messageCreate", (message) => {
-  if (message.author.bot) return;
-  message.reply({
-    content: `Hi ${message.author.globalName}`,
-  });
-
-  console.log(message);
+  prefixCommand(message);
 });
 
 client.on("interactionCreate", (interaction) => {
@@ -29,6 +26,7 @@ client.on("interactionCreate", (interaction) => {
 
   if (interaction.commandName === "waifu") {
     fetch(`https://api.waifu.im/search`)
+      // https://api.waifu.im/search/?included_tags=maid
       .then((response) => response.json())
       .then(async (data) => {
         const exampleEmbed = new EmbedBuilder()
@@ -61,8 +59,10 @@ client.on("ready", (c) => {
       {
         name: ".dev",
         type: ActivityType.Competing,
+        details: "working!",
       },
     ],
   });
 });
+
 client.login(token);

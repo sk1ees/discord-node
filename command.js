@@ -10,6 +10,10 @@ const commands = [
     name: "joke",
     description: "Replies with a random joke!",
   },
+  {
+    name: "roles",
+    description: "change your color roles",
+  },
 ];
 
 const rest = new REST({ version: "10" }).setToken(token);
